@@ -1,7 +1,7 @@
+import './index.css' // Проверь, что этот файл существует в папке src
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Calculator } from './App'
-import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
