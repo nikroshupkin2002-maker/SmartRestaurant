@@ -6,216 +6,267 @@ import {
   Settings2, ArrowRight, ChevronLeft 
 } from "lucide-react";
 
-// Тот самый компонент карточки, который мы потеряли
-const ProductCard = ({ active, set, label, priceDesc, children }: any) => (
-  <div 
-    className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex flex-col gap-4 ${
-      active ? 'border-green-500 bg-green-50/50' : 'border-white bg-white hover:border-slate-100 shadow-sm'
-    }`}
-  >
-    <div className="flex items-center justify-between gap-4" onClick={() => set(!active)}>
-      <div>
-        <span className={`font-black text-lg ${active ? 'text-green-900' : 'text-slate-800'}`}>{label}</span>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{priceDesc}</p>
-      </div>
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-        active ? 'bg-green-500 border-green-500 text-white' : 'border-slate-100 bg-slate-50 text-slate-400'
-      }`}>
-        {active ? <Check size={20} strokeWidth={4} /> : <Plus size={20} />}
-      </div>
-    </div>
-    
-    <AnimatePresence>
-      {active && children && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="overflow-hidden border-t border-green-200/50 pt-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-);
+// Форматирование денег как в твоем коде
+const formatMoney = (val: number) => {
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(val));
+};
 
 export function CalculatorPage() {
   const navigate = useNavigate();
 
-  // --- СОСТОЯНИЕ (STATE) ---
-  const [loc, setLoc] = useState(1);
-  const [chd, setChd] = useState(100);
-  const [avg, setAvg] = useState(5000);
-  const [margP, setMargP] = useState(70);
-  const [aggrP, setAggrP] = useState(30);
-  const [discP, setDiscP] = useState(0);
+  // --- STATE (из твоего кода) ---
+  const [params, setParams] = useState({
+    loc: 1,
+    chd: 100,
+    avg: 5000,
+    marg: 70,
+    aggr: 30,
+    discount: 0,
+  });
 
-  const [p1, setP1] = useState(false);
-  const [p2, setP2] = useState(false);
-  const [p3, setP3] = useState(false);
-  const [p4, setP4] = useState(false);
-  const [appP, setAppP] = useState(420000);
-  const [p5, setP5] = useState(false);
-  const [p6, setP6] = useState(false);
-  const [p7, setP7] = useState(false);
-  const [p8, setP8] = useState(false);
-  const [kCount, setKCount] = useState(1);
+  const [products, setProducts] = useState({
+    p1: false, p2: false, p3: false, p4: false,
+    p5: false, p6: false, p7: false, p8: false,
+  });
 
-  // --- ЛОГИКА РАСЧЕТОВ ---
+  const [appPrice, setAppPrice] = useState(420000);
+  const [kioskCount, setKioskCount] = useState(1);
+
+  // --- HANDLERS ---
+  const handleParamChange = (field: keyof typeof params, value: number) => {
+    setParams(prev => ({ ...prev, [field]: value }));
+  };
+  
+  const toggleProduct = (key: keyof typeof products) => {
+    setProducts(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // --- CALCULATIONS (твоя логика один-в-один) ---
   const results = useMemo(() => {
-    const marg = margP / 100;
-    const aggr = aggrP / 100;
-    const totalChecks = chd * 30 * loc;
-    
-    // 1. Текущая прибыль
-    const nowProfit = (totalChecks * avg * marg) - (totalChecks * avg * 0.3 * aggr);
+    const loc = params.loc || 0;
+    const chd = params.chd || 0;
+    const avg = params.avg || 0;
+    const marg = (params.marg || 0) / 100;
+    const aggr = (params.aggr || 0) / 100;
 
-    // 2. Расчет затрат
+    const days = 30;
+    const delivery_share = 0.3;
+    const impact = 0.4;
+
+    const total_checks = chd * days * loc;
+    const base_revenue = total_checks * avg;
+    const now_profit = (base_revenue * marg) - (base_revenue * delivery_share * aggr);
+
     let cost = 0;
-    if (p1) cost += 84000 * loc;
-    if (p2) cost += 120000 * loc;
-    if (p3) cost += 60000 * loc;
-    if (p4) cost += appP;
-    if (p5) cost += 60000;
-    if (p6) cost += 35000 * loc;
-    if (p7) cost += 60000 * loc;
-    if (p8) cost += 60000 * kCount;
-    const finalCost = cost * (1 - discP / 100);
+    if (products.p1) cost += 84000 * loc;
+    if (products.p2) cost += 120000 * loc;
+    if (products.p3) cost += 60000 * loc;
+    if (products.p4) cost += appPrice || 0;
+    if (products.p5) cost += 60000;
+    if (products.p6) cost += 35000 * loc;
+    if (products.p7) cost += 60000 * loc;
+    if (products.p8) cost += 60000 * (kioskCount || 0);
 
-    // 3. Эффект Smart Restaurant (на 40% клиентов)
-    const hasBoost = p1 || p2 || p3 || p4 || p8;
-    const nAvg = hasBoost ? (avg * 0.6 + avg * 1.16 * 0.4) : avg;
-    const nCh = p2 ? (totalChecks * 0.6 + totalChecks * 1.25 * 0.4) : totalChecks;
-    const ret = (p1 || p2 || p3 || p4 || p5 || p7 || p8) ? (nCh * 0.2 * nAvg) : 0;
-    const loy = p5 ? (nCh * 0.2 * nAvg * 0.3) : 0;
+    const has_boost = products.p1 || products.p2 || products.p3 || products.p4 || products.p8;
+    const has_speed = products.p2;
+    const has_loyalty = products.p5;
+    const has_return = products.p1 || products.p2 || products.p3 || products.p4 || products.p5 || products.p7 || products.p8;
 
-    let smartProfit = ((nCh * nAvg) + ret + loy) * marg - finalCost;
-    if (!p3) smartProfit -= ((nCh * nAvg) * 0.3 * aggr);
+    const n_avg = has_boost ? (avg * (1 - impact)) + (avg * 1.16 * impact) : avg;
+    const n_ch = has_speed ? (total_checks * (1 - impact)) + (total_checks * 1.25 * impact) : total_checks;
+    
+    const ret_rev = has_return ? (n_ch * 0.2 * n_avg) : 0;
+    const loy_rev = has_loyalty ? (n_ch * 0.2 * n_avg * 0.3) : 0;
 
-    return {
-      now: Math.round(nowProfit),
-      smart: Math.round(smartProfit),
-      cost: Math.round(finalCost)
-    };
-  }, [loc, chd, avg, margP, aggrP, discP, p1, p2, p3, p4, p5, p6, p7, p8, appP, kCount]);
+    const smart_rev = (n_ch * n_avg) + ret_rev + loy_rev;
+    const final_cost = cost * (1 - (params.discount || 0) / 100);
 
-  const formatM = (v: number) => v.toLocaleString('ru-RU').replace(',', ' ');
+    let smart_profit = (smart_rev * marg) - final_cost;
+    if (!products.p3) {
+      smart_profit -= (smart_rev * delivery_share * aggr);
+    }
+
+    return { now_profit, smart_profit, diff: smart_profit - now_profit, cost: final_cost };
+  }, [params, products, appPrice, kioskCount]);
+
+  // --- ТВОИ КОМПОНЕНТЫ (InputField и ProductCard) ---
+  const InputField = ({ label, value, field, min=0, max=1000000, suffix="" }: any) => (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-sm font-semibold text-gray-600">{label}</label>
+      <div className="relative flex items-center">
+        <input
+          type="number" min={min} max={max} value={value}
+          onChange={(e) => handleParamChange(field, parseFloat(e.target.value) || 0)}
+          className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#1FCC59]/30 focus:border-[#1FCC59] focus:bg-white transition-all appearance-none"
+        />
+        {suffix && <span className="absolute right-4 text-gray-400 font-medium">{suffix}</span>}
+      </div>
+    </div>
+  );
+
+  const ProductCard = ({ label, priceLabel, isChecked, onToggle, extraInputs = null }: any) => (
+    <div
+      className={`relative flex flex-col p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer select-none
+        ${isChecked ? 'border-[#1FCC59] bg-[#1FCC59]/5 shadow-sm' : 'border-transparent bg-white shadow-sm hover:shadow-md'}
+      `}
+      onClick={onToggle}
+    >
+      <div className="flex justify-between items-start mb-1 gap-2">
+        <h4 className={`font-bold text-[15px] leading-tight ${isChecked ? 'text-gray-900' : 'text-gray-700'}`}>
+          {label}
+        </h4>
+        <div className={`w-5 h-5 flex-shrink-0 rounded-md flex items-center justify-center transition-colors ${isChecked ? 'bg-[#1FCC59] text-white' : 'bg-gray-100 border border-gray-300'}`}>
+          {isChecked && <Check size={14} strokeWidth={3} />}
+        </div>
+      </div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{priceLabel}</p>
+      {isChecked && extraInputs && (
+        <div className="mt-4 border-t border-[#1FCC59]/20 pt-4" onClick={(e) => e.stopPropagation()}>
+          {extraInputs}
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-12 font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* HEADER */}
-        <header className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-green-200">F</div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Freedom Bank</p>
-              <p className="text-lg font-black leading-none">Smart Restaurant</p>
-            </div>
-          </div>
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-green-600 transition-colors group">
-            <ChevronLeft className="group-hover:-translate-x-1 transition-transform" />
-            <span className="font-bold text-sm uppercase tracking-wider">Меню</span>
-          </button>
-        </header>
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      {/* Кнопка назад сохранена для навигации */}
+      <div className="container mx-auto px-4 pt-6 max-w-6xl">
+        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-400 hover:text-[#1FCC59] transition-colors font-bold text-sm uppercase tracking-wider">
+          <ChevronLeft size={20} /> Назад
+        </button>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
-          {/* LEFT: INPUTS */}
-          <div className="flex-1 w-full space-y-12">
+      <div className="container mx-auto px-4 sm:px-8 py-8 md:py-12 max-w-6xl pb-24 lg:pb-12">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
+          
+          {/* Левая колонка (твой дизайн) */}
+          <div className="w-full lg:w-[65%] flex flex-col gap-8 pb-12">
+            <div className="mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+                <CalcIcon size={32} className="text-[#1FCC59]" />
+                Smart Restaurant Calc
+              </h1>
+              <div className="inline-flex items-center mt-4 bg-blue-50 text-blue-700 text-sm font-semibold px-4 py-2 rounded-lg border border-blue-100">
+                <Info size={16} className="mr-2 opacity-80" />
+                Расчет ведется на 40% проникновения продукта
+              </div>
+            </div>
+
             <section>
-              <h1 className="text-5xl font-black tracking-tighter mb-4">Smart Calc</h1>
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold border border-blue-100">
-                <Info size={14} /> Расчет на 40% проникновения продуктов
+              <h2 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
+                <Settings2 size={20} className="text-gray-400" /> 1. Основные параметры
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                <InputField label="Локаций" value={params.loc} field="loc" />
+                <InputField label="Чеков/день" value={params.chd} field="chd" />
+                <InputField label="Ср. чек" value={params.avg} field="avg" suffix="₸" />
+                <InputField label="Маржа" value={params.marg} field="marg" suffix="%" max={100} />
               </div>
             </section>
 
-            <section className="space-y-6">
-              <div className="flex items-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.2em]">
-                <Settings2 size={16} /> 1. Основные параметры
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { label: 'Локаций', val: loc, set: setLoc },
-                  { label: 'Чеков/день', val: chd, set: setChd },
-                  { label: 'Ср. чек', val: avg, set: setAvg },
-                  { label: 'Маржа (%)', val: margP, set: setMargP },
-                ].map((p, i) => (
-                  <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">{p.label}</label>
-                    <input 
-                      type="number" 
-                      value={p.val} 
-                      onChange={(e) => p.set(+e.target.value)} 
-                      className="w-full text-2xl font-black outline-none bg-transparent"
-                    />
-                  </div>
-                ))}
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
+                <Plus size={20} className="text-gray-400" /> 2. Дополнительные параметры
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                <InputField label="Комиссия агр." value={params.aggr} field="aggr" suffix="%" max={100} />
+                <InputField label="Скидка на услуги" value={params.discount} field="discount" suffix="%" max={100} />
               </div>
             </section>
 
-            <section className="space-y-6">
-              <div className="flex items-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.2em]">
-                <Plus size={16} /> 2. Продукты
-              </div>
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
+                <Check size={20} className="text-gray-400" /> 3. Продукты
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ProductCard active={p1} set={setP1} label="Без кассира" priceDesc="84 000 ₸ / лок" />
-                <ProductCard active={p2} set={setP2} label="Без официанта" priceDesc="120 000 ₸ / лок" />
-                <ProductCard active={p3} set={setP3} label="SR Delivery" priceDesc="60 000 ₸ / лок" />
-                <ProductCard active={p4} set={setP4} label="Приложение" priceDesc="Своя цена">
-                  <div className="bg-white p-4 rounded-2xl border border-green-100">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Стоимость (₸)</label>
-                    <input type="number" value={appP} onChange={(e) => setAppP(+e.target.value)} className="w-full font-black text-green-700 outline-none" />
-                  </div>
-                </ProductCard>
-                <ProductCard active={p8} set={setP8} label="Киоск" priceDesc="60 000 ₸ / ед">
-                  <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-green-100">
-                    <button onClick={() => setKCount(Math.max(1, kCount - 1))} className="w-8 h-8 bg-green-100 rounded-lg text-green-600 font-black">-</button>
-                    <span className="flex-1 text-center font-black">{kCount} шт</span>
-                    <button onClick={() => setKCount(kCount + 1)} className="w-8 h-8 bg-green-100 rounded-lg text-green-600 font-black">+</button>
-                  </div>
-                </ProductCard>
-                <ProductCard active={p5} set={setP5} label="Лояльность" priceDesc="60 000 ₸" />
+                <ProductCard label="Без кассира" priceLabel="84 000 ₸ / лок" isChecked={products.p1} onToggle={() => toggleProduct('p1')} />
+                <ProductCard label="Без официанта" priceLabel="120 000 ₸ / лок" isChecked={products.p2} onToggle={() => toggleProduct('p2')} />
+                <ProductCard label="SR Delivery" priceLabel="60 000 ₸ / лок" isChecked={products.p3} onToggle={() => toggleProduct('p3')} />
+                <ProductCard 
+                  label="Приложение" priceLabel="Настраиваемая цена" isChecked={products.p4} onToggle={() => toggleProduct('p4')} 
+                  extraInputs={
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1 w-full">
+                        <label className="text-xs font-semibold text-gray-600">Цена приложения (₸)</label>
+                        <input type="number" value={appPrice} onChange={e => setAppPrice(parseFloat(e.target.value)||0)} className="w-full h-10 px-3 rounded-lg border border-[#1FCC59]/30 bg-white text-sm" />
+                      </div>
+                    </div>
+                  }
+                />
+                <ProductCard label="Лояльность" priceLabel="60 000 ₸" isChecked={products.p5} onToggle={() => toggleProduct('p5')} />
+                <ProductCard label="AppClip" priceLabel="35 000 ₸ / лок" isChecked={products.p6} onToggle={() => toggleProduct('p6')} />
+                <ProductCard label="Автоподтягивание счета" priceLabel="60 000 ₸ / лок" isChecked={products.p7} onToggle={() => toggleProduct('p7')} />
+                <ProductCard 
+                  label="Киоск" priceLabel="60 000 ₸ / ед" isChecked={products.p8} onToggle={() => toggleProduct('p8')} 
+                  extraInputs={
+                    <div className="flex items-center gap-2 mt-1">
+                      <button onClick={(e) => { e.stopPropagation(); setKioskCount(Math.max(1, kioskCount - 1)); }} className="w-8 h-8 rounded-lg bg-[#1FCC59]/10 text-[#1FCC59] flex items-center justify-center hover:bg-[#1FCC59]/20">-</button>
+                      <input type="number" min={1} value={kioskCount} onChange={e => setKioskCount(parseInt(e.target.value)||1)} className="w-full text-center h-10 px-3 rounded-lg border border-[#1FCC59]/30 bg-white text-sm font-bold" />
+                      <button onClick={(e) => { e.stopPropagation(); setKioskCount(kioskCount + 1); }} className="w-8 h-8 rounded-lg bg-[#1FCC59]/10 text-[#1FCC59] flex items-center justify-center hover:bg-[#1FCC59]/20">+</button>
+                    </div>
+                  }
+                />
               </div>
             </section>
           </div>
 
-          {/* RIGHT: RESULTS SIDEBAR */}
-          <div className="w-full lg:w-[400px] lg:sticky lg:top-12">
-            <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col gap-8">
-              <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Результат (30 дней)</p>
-              
-              <div className="space-y-4">
-                <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Сейчас</p>
-                  <p className="text-3xl font-black tracking-tighter">{formatM(results.now)} ₸</p>
+          {/* Правая колонка (твой дизайн) */}
+          <div className="w-full lg:w-[35%] relative">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} className="sticky top-24 flex flex-col gap-6">
+              <div className="bg-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col">
+                <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">Итоговый расчет за 30 дней</h3>
+
+                <div className="bg-gray-50 rounded-2xl p-5 mb-4 border border-gray-100 flex flex-col items-center justify-center text-center">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Прибыль сейчас</span>
+                  <span className="text-3xl font-extrabold text-gray-800 tracking-tight">
+                    {formatMoney(results.now_profit)} <span className="text-xl text-gray-500">₸</span>
+                  </span>
                 </div>
 
-                <div className="flex justify-center py-2 text-slate-200">
-                  <ArrowRight size={32} className="rotate-90 lg:rotate-0" />
+                <div className="flex justify-center -my-2 relative z-10 hidden sm:flex">
+                  <div className="w-8 h-8 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm">
+                    <ArrowRight size={16} className="text-gray-300 transform rotate-90" strokeWidth={3} />
+                  </div>
                 </div>
 
-                <div className="p-8 rounded-[32px] bg-green-500 text-white text-center shadow-xl shadow-green-200">
-                  <p className="text-[10px] font-black opacity-60 uppercase mb-1">Smart Restaurant</p>
-                  <p className="text-4xl font-black tracking-tighter">{formatM(results.smart)} ₸</p>
+                <div className="bg-gradient-to-br from-[#1FCC59] to-[#0CB055] rounded-2xl p-6 text-white flex flex-col items-center justify-center text-center shadow-lg shadow-[#1FCC59]/20">
+                  <span className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">С Smart Restaurant</span>
+                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                    {formatMoney(results.smart_profit)} <span className="text-xl sm:text-2xl text-white/80">₸</span>
+                  </span>
+                  {results.cost > 0 && (
+                    <span className="mt-3 text-xs font-medium text-white/80 bg-white/10 px-3 py-1 rounded-full">
+                      Затраты на продукты: -{formatMoney(results.cost)} ₸
+                    </span>
+                  )}
                 </div>
 
-                <div className="p-6 rounded-[32px] bg-green-50 border-2 border-green-100 text-center">
-                  <p className="text-[10px] font-black text-green-600 uppercase mb-1 text-xs">Выгода</p>
-                  <p className="text-3xl font-black text-green-700 tracking-tighter">+{formatM(results.smart - results.now)} ₸</p>
-                </div>
+                <motion.div key={results.diff} initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+                  className={`mt-6 rounded-2xl p-5 border-2 flex items-center justify-center ${results.diff >= 0 ? 'bg-[#1FCC59]/10 border-[#1FCC59]/30 text-[#0CB055]' : 'bg-red-50 border-red-200 text-red-600'}`}
+                >
+                  <div className="text-center">
+                    <span className="text-sm font-bold uppercase tracking-wider block mb-1">Выгода от внедрения</span>
+                    <span className="text-2xl font-black">{results.diff > 0 ? '+' : ''}{formatMoney(results.diff)} ₸</span>
+                  </div>
+                </motion.div>
               </div>
-
-              {results.cost > 0 && (
-                <div className="text-center p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Затраты на внедрение</p>
-                  <p className="font-black text-slate-600">-{formatM(results.cost)} ₸</p>
-                </div>
-              )}
-            </div>
+            </motion.div>
           </div>
+        </div>
+      </div>
+
+      {/* Мобильный футер (твой дизайн) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-40 flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Выгода</span>
+          <span className={`text-lg font-black ${results.diff >= 0 ? 'text-[#0CB055]' : 'text-red-600'}`}>
+            {results.diff > 0 ? '+' : ''}{formatMoney(results.diff)} ₸
+          </span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Прибыль (Smart)</span>
+          <span className="text-lg font-black text-gray-900">{formatMoney(results.smart_profit)} ₸</span>
         </div>
       </div>
     </div>
