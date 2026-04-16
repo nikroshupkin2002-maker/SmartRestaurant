@@ -1,18 +1,26 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Info, Check, Calculator as CalcIcon, Plus, Settings2, ArrowRight, ChevronLeft } from "lucide-react";
+import { 
+  Info, Check, Calculator as CalcIcon, Plus, 
+  Settings2, ArrowRight, ChevronLeft 
+} from "lucide-react";
 
-// Вспомогательный компонент для карточки продукта
-const ProductCard = ({ active, set, label, desc, priceDesc, children }: any) => (
-  <div className={`p-6 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-4 ${active ? 'border-green-500 bg-green-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+// Тот самый компонент карточки, который мы потеряли
+const ProductCard = ({ active, set, label, priceDesc, children }: any) => (
+  <div 
+    className={`p-6 rounded-[32px] border-2 transition-all cursor-pointer flex flex-col gap-4 ${
+      active ? 'border-green-500 bg-green-50/50' : 'border-white bg-white hover:border-slate-100 shadow-sm'
+    }`}
+  >
     <div className="flex items-center justify-between gap-4" onClick={() => set(!active)}>
       <div>
-        <span className={`font-bold text-lg ${active ? 'text-green-800' : 'text-slate-800'}`}>{label}</span>
-        {priceDesc && <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-1">{priceDesc}</p>}
-        {desc && <p className="text-sm font-semibold text-slate-400 mt-1">{desc}</p>}
+        <span className={`font-black text-lg ${active ? 'text-green-900' : 'text-slate-800'}`}>{label}</span>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{priceDesc}</p>
       </div>
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${active ? 'bg-green-500 border-green-500 text-white' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+        active ? 'bg-green-500 border-green-500 text-white' : 'border-slate-100 bg-slate-50 text-slate-400'
+      }`}>
         {active ? <Check size={20} strokeWidth={4} /> : <Plus size={20} />}
       </div>
     </div>
@@ -23,7 +31,7 @@ const ProductCard = ({ active, set, label, desc, priceDesc, children }: any) => 
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className="overflow-hidden border-t border-green-200/50 pt-4 mt-1"
+          className="overflow-hidden border-t border-green-200/50 pt-4"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -34,9 +42,9 @@ const ProductCard = ({ active, set, label, desc, priceDesc, children }: any) => 
 );
 
 export function CalculatorPage() {
-  const navigate = useNavigate(); // Для кнопки Назад
+  const navigate = useNavigate();
 
-  // --- ДАННЫЕ КАЛЬКУЛЯТОРА ---
+  // --- СОСТОЯНИЕ (STATE) ---
   const [loc, setLoc] = useState(1);
   const [chd, setChd] = useState(100);
   const [avg, setAvg] = useState(5000);
@@ -47,26 +55,24 @@ export function CalculatorPage() {
   const [p1, setP1] = useState(false);
   const [p2, setP2] = useState(false);
   const [p3, setP3] = useState(false);
-  
   const [p4, setP4] = useState(false);
   const [appP, setAppP] = useState(420000);
-  const [appL, setAppL] = useState(5);
-
   const [p5, setP5] = useState(false);
   const [p6, setP6] = useState(false);
   const [p7, setP7] = useState(false);
-  
   const [p8, setP8] = useState(false);
   const [kCount, setKCount] = useState(1);
 
-  // --- ЛОГИКА РАСЧЕТА ---
+  // --- ЛОГИКА РАСЧЕТОВ ---
   const results = useMemo(() => {
     const marg = margP / 100;
     const aggr = aggrP / 100;
     const totalChecks = chd * 30 * loc;
-
+    
+    // 1. Текущая прибыль
     const nowProfit = (totalChecks * avg * marg) - (totalChecks * avg * 0.3 * aggr);
 
+    // 2. Расчет затрат
     let cost = 0;
     if (p1) cost += 84000 * loc;
     if (p2) cost += 120000 * loc;
@@ -78,10 +84,10 @@ export function CalculatorPage() {
     if (p8) cost += 60000 * kCount;
     const finalCost = cost * (1 - discP / 100);
 
+    // 3. Эффект Smart Restaurant (на 40% клиентов)
     const hasBoost = p1 || p2 || p3 || p4 || p8;
     const nAvg = hasBoost ? (avg * 0.6 + avg * 1.16 * 0.4) : avg;
     const nCh = p2 ? (totalChecks * 0.6 + totalChecks * 1.25 * 0.4) : totalChecks;
-    
     const ret = (p1 || p2 || p3 || p4 || p5 || p7 || p8) ? (nCh * 0.2 * nAvg) : 0;
     const loy = p5 ? (nCh * 0.2 * nAvg * 0.3) : 0;
 
@@ -97,153 +103,117 @@ export function CalculatorPage() {
 
   const formatM = (v: number) => v.toLocaleString('ru-RU').replace(',', ' ');
 
-  const ParamCard = ({ label, val, set, unit }: any) => (
-    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-      <label className="block text-[11px] font-bold text-slate-400 uppercase mb-3">{label}</label>
-      <div className="flex items-baseline gap-1">
-        <input type="number" value={val} onChange={(e) => set(+e.target.value)} className="w-full text-2xl font-black text-slate-800 outline-none" />
-        {unit && <span className="text-xl font-bold text-slate-400">{unit}</span>}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-12 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-12 font-sans text-slate-900">
       <div className="max-w-7xl mx-auto">
         
-        {/* Хедер Freedom Bank */}
-        <header className="flex items-center justify-between mb-8 border-b border-slate-100 pb-8">
-            <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-black text-xl">F</div>
-                <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">FREEDOM BANK</span>
-                    <span className="font-extrabold text-slate-900">Smart Restaurant</span>
-                </div>
+        {/* HEADER */}
+        <header className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-green-200">F</div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Freedom Bank</p>
+              <p className="text-lg font-black leading-none">Smart Restaurant</p>
             </div>
-            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">A</div>
+          </div>
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-green-600 transition-colors group">
+            <ChevronLeft className="group-hover:-translate-x-1 transition-transform" />
+            <span className="font-bold text-sm uppercase tracking-wider">Меню</span>
+          </button>
         </header>
 
-        {/* Кнопка "Назад" */}
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-8 transition-colors group">
-          <ChevronLeft className="group-hover:-translate-x-1 transition-transform" size={20} />
-          <span className="text-sm font-bold uppercase tracking-wider">Назад в меню</span>
-        </button>
-
         <div className="flex flex-col lg:flex-row gap-12 items-start">
+          {/* LEFT: INPUTS */}
           <div className="flex-1 w-full space-y-12">
-            
-            <div>
-              <h1 className="text-4xl font-black text-slate-900 mb-3 flex items-center gap-3">
-                <CalcIcon className="text-green-500" size={32} /> Smart Restaurant Calc
-              </h1>
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-100 text-sm font-semibold">
-                  <Info size={16} /> Расчет ведется на 40% проникновения продукта
-              </div>
-            </div>
-
-            {/* БЛОК 1: ОСНОВНЫЕ ПАРАМЕТРЫ */}
             <section>
-              <div className="flex items-center gap-2 mb-6 text-slate-400">
-                <Settings2 size={18} />
-                <h2 className="text-xs font-black uppercase tracking-[0.2em]">1. Основные параметры</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                <ParamCard label="Локаций" val={loc} set={setLoc} unit="" />
-                <ParamCard label="Чеков/день" val={chd} set={setChd} unit="" />
-                <ParamCard label="Ср. чек (₸)" val={avg} set={setAvg} unit="₸" />
-                <ParamCard label="Маржа (%)" val={margP} set={setMargP} unit="%" />
+              <h1 className="text-5xl font-black tracking-tighter mb-4">Smart Calc</h1>
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold border border-blue-100">
+                <Info size={14} /> Расчет на 40% проникновения продуктов
               </div>
             </section>
 
-            {/* БЛОК 2: ДОПОЛНИТЕЛЬНО */}
-            <section>
-              <div className="flex items-center gap-2 mb-6 text-slate-400">
-                <Plus size={18} />
-                <h2 className="text-xs font-black uppercase tracking-[0.2em]">2. Дополнительные параметры</h2>
+            <section className="space-y-6">
+              <div className="flex items-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.2em]">
+                <Settings2 size={16} /> 1. Основные параметры
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase">Комиссия агр. (%)</label>
-                  <input type="number" value={aggrP} onChange={(e) => setAggrP(+e.target.value)} className="w-24 text-2xl font-black text-slate-800 outline-none text-right" />
-                </div>
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase">Скидка на услуги (%)</label>
-                  <input type="number" value={discP} onChange={(e) => setDiscP(+e.target.value)} className="w-24 text-2xl font-black text-slate-800 outline-none text-right" />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Локаций', val: loc, set: setLoc },
+                  { label: 'Чеков/день', val: chd, set: setChd },
+                  { label: 'Ср. чек', val: avg, set: setAvg },
+                  { label: 'Маржа (%)', val: margP, set: setMargP },
+                ].map((p, i) => (
+                  <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">{p.label}</label>
+                    <input 
+                      type="number" 
+                      value={p.val} 
+                      onChange={(e) => p.set(+e.target.value)} 
+                      className="w-full text-2xl font-black outline-none bg-transparent"
+                    />
+                  </div>
+                ))}
               </div>
             </section>
 
-            {/* БЛОК 3: ПРОДУКТЫ */}
-            <section>
-              <div className="flex items-center gap-2 mb-6 text-slate-400">
-                <Check size={18} />
-                <h2 className="text-xs font-black uppercase tracking-[0.2em]">3. Продукты</h2>
+            <section className="space-y-6">
+              <div className="flex items-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.2em]">
+                <Plus size={16} /> 2. Продукты
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ProductCard active={p1} set={setP1} label="Без кассира" priceDesc="84 000 ₸ / лок" />
                 <ProductCard active={p2} set={setP2} label="Без официанта" priceDesc="120 000 ₸ / лок" />
                 <ProductCard active={p3} set={setP3} label="SR Delivery" priceDesc="60 000 ₸ / лок" />
-                
-                <ProductCard active={p4} set={setP4} label="Приложение" desc="Настраиваемая цена">
-                  <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-xl border border-green-100 shadow-inner">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Цена приложения (₸)</label>
-                      <input type="number" value={appP} onChange={(e) => setAppP(+e.target.value)} className="w-full text-lg font-bold text-green-900 outline-none" />
-                    </div>
-                    <div className="bg-white p-4 rounded-xl border border-green-100 shadow-inner">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Локаций приложения</label>
-                      <input type="number" value={appL} onChange={(e) => setAppL(+e.target.value)} className="w-full text-lg font-bold text-green-900 outline-none" />
-                    </div>
+                <ProductCard active={p4} set={setP4} label="Приложение" priceDesc="Своя цена">
+                  <div className="bg-white p-4 rounded-2xl border border-green-100">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Стоимость (₸)</label>
+                    <input type="number" value={appP} onChange={(e) => setAppP(+e.target.value)} className="w-full font-black text-green-700 outline-none" />
                   </div>
                 </ProductCard>
-
-                <ProductCard active={p5} set={setP5} label="Лояльность" priceDesc="60 000 ₸" />
-                <ProductCard active={p6} set={setP6} label="AppClip" priceDesc="35 000 ₸ / лок" />
-                <ProductCard active={p7} set={setP7} label="Автоподтягивание счета" priceDesc="60 000 ₸ / лок" />
-                
                 <ProductCard active={p8} set={setP8} label="Киоск" priceDesc="60 000 ₸ / ед">
-                  <div className="bg-white p-4 rounded-xl border border-green-100 shadow-inner">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Кол-во киосков</label>
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setKCount(Math.max(1, kCount - 1))} className="w-10 h-10 rounded-lg bg-green-100 text-green-700 font-bold text-xl hover:bg-green-200 transition-colors">-</button>
-                        <input type="number" value={kCount} onChange={(e) => setKCount(Math.max(1, +e.target.value))} className="w-full text-center text-lg font-black text-green-900 outline-none" />
-                        <button onClick={() => setKCount(kCount + 1)} className="w-10 h-10 rounded-lg bg-green-100 text-green-700 font-bold text-xl hover:bg-green-200 transition-colors">+</button>
-                    </div>
+                  <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-green-100">
+                    <button onClick={() => setKCount(Math.max(1, kCount - 1))} className="w-8 h-8 bg-green-100 rounded-lg text-green-600 font-black">-</button>
+                    <span className="flex-1 text-center font-black">{kCount} шт</span>
+                    <button onClick={() => setKCount(kCount + 1)} className="w-8 h-8 bg-green-100 rounded-lg text-green-600 font-black">+</button>
                   </div>
                 </ProductCard>
+                <ProductCard active={p5} set={setP5} label="Лояльность" priceDesc="60 000 ₸" />
               </div>
             </section>
           </div>
 
-          {/* ИТОГОВАЯ ПАНЕЛЬ */}
-          <div className="w-full lg:w-[420px] lg:sticky lg:top-12 mt-12 lg:mt-0">
-            <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50">
-              <h3 className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-10">Итоговый расчет за 30 дней</h3>
+          {/* RIGHT: RESULTS SIDEBAR */}
+          <div className="w-full lg:w-[400px] lg:sticky lg:top-12">
+            <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col gap-8">
+              <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Результат (30 дней)</p>
               
-              <div className="space-y-6">
-                <div className="bg-slate-50 p-6 rounded-[32px] text-center border border-slate-100">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider">Прибыль сейчас</div>
-                  <div className="text-3xl font-black text-slate-800 tracking-tight">{formatM(results.now)} <span className="text-2xl text-slate-500">₸</span></div>
+              <div className="space-y-4">
+                <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Сейчас</p>
+                  <p className="text-3xl font-black tracking-tighter">{formatM(results.now)} ₸</p>
                 </div>
 
-                <div className="relative pt-4 pb-4 flex justify-center">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-slate-100"></div></div>
-                  <div className="relative bg-white px-3 text-slate-200"><ArrowRight size={24} className="rotate-90" /></div>
+                <div className="flex justify-center py-2 text-slate-200">
+                  <ArrowRight size={32} className="rotate-90 lg:rotate-0" />
                 </div>
 
-                <div className="bg-green-500 p-10 rounded-[32px] text-center text-white shadow-xl shadow-green-200">
-                  <div className="text-[10px] font-bold opacity-80 uppercase mb-1.5 tracking-wider">С Smart Restaurant</div>
-                  <div className="text-4xl font-black tracking-tight">{formatM(results.smart)} <span className="text-2xl opacity-80">₸</span></div>
-                  {results.cost > 0 && (
-                    <div className="mt-4 text-xs font-medium bg-white/15 px-3 py-1 rounded-full inline-block border border-white/20">Затраты на продукты: -{formatM(results.cost)} ₸</div>
-                  )}
+                <div className="p-8 rounded-[32px] bg-green-500 text-white text-center shadow-xl shadow-green-200">
+                  <p className="text-[10px] font-black opacity-60 uppercase mb-1">Smart Restaurant</p>
+                  <p className="text-4xl font-black tracking-tighter">{formatM(results.smart)} ₸</p>
                 </div>
 
-                <div className="bg-green-50 p-6 rounded-[32px] text-center border-2 border-green-100">
-                  <div className="text-[10px] font-bold text-green-600 uppercase mb-1.5 tracking-wider">Выгода внедрения</div>
-                  <div className="text-3xl font-black text-green-600 tracking-tight">+{formatM(results.smart - results.now)} ₸</div>
+                <div className="p-6 rounded-[32px] bg-green-50 border-2 border-green-100 text-center">
+                  <p className="text-[10px] font-black text-green-600 uppercase mb-1 text-xs">Выгода</p>
+                  <p className="text-3xl font-black text-green-700 tracking-tighter">+{formatM(results.smart - results.now)} ₸</p>
                 </div>
               </div>
+
+              {results.cost > 0 && (
+                <div className="text-center p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Затраты на внедрение</p>
+                  <p className="font-black text-slate-600">-{formatM(results.cost)} ₸</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
