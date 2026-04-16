@@ -3,6 +3,5 @@
 @tailwind utilities;
 
 body {
-  margin: 0;
-  background-color: #f8fafc;
+  @apply bg-slate-50; /* Светло-серый фон как в Figma */
 }
